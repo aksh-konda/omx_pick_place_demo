@@ -14,8 +14,6 @@ setup(
                                                'launch/spawn_cube.launch.py',
                                                'launch/run_pick_place.launch.py']),
         ('share/' + package_name + '/worlds', ['worlds/empty.world']),
-        ('share/' + package_name + '/urdf/open_manipulator_x', ['urdf/open_manipulator_x/open_manipulator_x.urdf.xacro']),
-        ('share/' + package_name + '/config/open_manipulator_x', ['config/open_manipulator_x/open_manipulator_x.srdf', 'config/open_manipulator_x/kinematics.yaml', 'config/open_manipulator_x/moveit_controllers.yaml', 'config/open_manipulator_x/joint_limits.yaml']),
         ('share/' + package_name + '/models/cube_10cm', ['models/cube_10cm/model.sdf',
                                                          'models/cube_10cm/model.config']),
         ('share/' + package_name + '/models/cube_5cm', ['models/cube_5cm/model.sdf','models/cube_5cm/model.config']),

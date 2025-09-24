@@ -1,53 +1,51 @@
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
-import os, yaml
-
-def _load_yaml(path):
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
-
-def _load_text(path):
-    with open(path, 'r') as f:
-        return f.read()
-
-def _xacro_to_urdf(xacro_path:str) -> str:
-    try:
-        import xacro
-        doc = xacro.process_file(xacro_path)
-        return doc.toprettyxml(indent='  ')
-    except Exception:
-        import subprocess, tempfile
-        with tempfile.NamedTemporaryFile('r+', delete=False) as tmp:
-            subprocess.run(['xacro', xacro_path, '-o', tmp.name], check=True)
-            return open(tmp.name).read()
+from pathlib import Path
+from moveit_configs_utils import MoveItConfigsBuilder
 
 def generate_launch_description():
-    pkg = get_package_share_directory('omx_pick_place_demo')
-    URDF_XACRO = os.path.join(pkg, 'urdf',  'open_manipulator_x', 'open_manipulator_x.urdf.xacro')
-    SRDF       = os.path.join(pkg, 'config','open_manipulator_x', 'open_manipulator_x.srdf')
-    KIN        = os.path.join(pkg, 'config','open_manipulator_x', 'kinematics.yaml')
-    CTRLS      = os.path.join(pkg, 'config','open_manipulator_x', 'moveit_controllers.yaml')
-    JOINTLIM   = os.path.join(pkg, 'config','open_manipulator_x', 'joint_limits.yaml')
+    # Xacro args
+    prefix_arg   = DeclareLaunchArgument('prefix', default_value='')
+    use_fake_arg = DeclareLaunchArgument('use_fake_hardware', default_value='true')
+    use_sim_arg  = DeclareLaunchArgument('use_sim', default_value='true')
 
-    assert os.path.exists(URDF_XACRO)
-    assert os.path.exists(SRDF)
-    assert os.path.exists(KIN)
-    assert os.path.exists(CTRLS)
-    assert os.path.exists(JOINTLIM)
+    prefix   = LaunchConfiguration('prefix')
+    use_fake = LaunchConfiguration('use_fake_hardware')
+    use_sim  = LaunchConfiguration('use_sim')
 
-    params = {}
-    params["robot_description"]             = _xacro_to_urdf(URDF_XACRO)
-    params["robot_description_semantic"]    = _load_text(SRDF)
-    params["robot_description_kinematics"]  = _load_yaml(KIN)
-    params["robot_description_planning"]    = _load_yaml(JOINTLIM)
-    params["planning_pipelines"]            = ["ompl"]
-    params.update(_load_yaml(CTRLS) or {})
+    # 1) URDF/Xacro from open_manipulator_description
+    om_desc_share = get_package_share_directory('open_manipulator_description')
+    urdf_xacro = str(Path(om_desc_share) / 'urdf' / 'open_manipulator_x' / 'open_manipulator_x.urdf.xacro')
 
-    node = Node(
-        package="omx_pick_place_demo",
-        executable="moveit_pick_place",
-        output="screen",
-        parameters=[params],
+    # 2) All MoveIt configs from open_manipulator_moveit_config
+    om_moveit_share = get_package_share_directory('open_manipulator_moveit_config')
+    cfg = Path(om_moveit_share) / 'config' / 'open_manipulator_x'
+
+    moveit_config = (
+        MoveItConfigsBuilder(
+            robot_name='open_manipulator_x',
+            package_name='open_manipulator_moveit_config'
+        )
+        .robot_description(
+            urdf_xacro,
+            mappings={'prefix': prefix, 'use_fake_hardware': use_fake, 'use_sim': use_sim}
+        )
+        .robot_description_semantic(str(cfg / 'open_manipulator_x.srdf'))
+        .joint_limits(str(cfg / 'joint_limits.yaml'))
+        .trajectory_execution(str(cfg / 'moveit_controllers.yaml'))
+        .robot_description_kinematics(str(cfg / 'kinematics.yaml'))
+        .to_moveit_configs()
     )
-    return LaunchDescription([node])
+
+    return LaunchDescription([
+        prefix_arg, use_fake_arg, use_sim_arg,
+        Node(
+            package='omx_pick_place_demo',
+            executable='moveit_pick_place',
+            output='screen',
+            parameters=[moveit_config.to_dict()],
+        ),
+    ])

@@ -75,7 +75,7 @@ def run_moveit_sequence():
     place = make_pose(0.38, 0.00, 0.12)
 
     def plan_exec(target_pose: PoseStamped):
-        arm.set_goal_state(pose_stamped=target_pose, pose_link=EEF_LINK)
+        arm.set_goal_state(pose_stamped_msg=target_pose, pose_link=EEF_LINK)
         plan = arm.plan()
         if not plan:
             raise RuntimeError('Planning failed')

@@ -13,6 +13,15 @@
   <exec_depend>gazebo_msgs</exec_depend>
   <exec_depend>moveit</exec_depend>
 
+  <exec_depend>open_manipulator_description</exec_depend>
+  <exec_depend>open_manipulator_moveit_config</exec_depend>
+  <exec_depend>moveit_py</exec_depend>
+  <exec_depend>moveit_configs_utils</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+
+
+
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
